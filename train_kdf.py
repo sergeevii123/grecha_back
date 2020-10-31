@@ -7,7 +7,7 @@ from sklearn import cluster
 from sklearn.preprocessing import LabelEncoder
 from collections import Counter
 from scipy.sparse import csr_matrix
-import implicit
+from implicit.nearest_neighbours import CosineRecommender
 import pickle
 import scipy
 
@@ -184,7 +184,7 @@ sparse_matrix = csr_matrix(
     shape=(n_users, n_items)
 )
 
-model = implicit.als.AlternatingLeastSquares(factors=128)
+model = CosineRecommender()
 model.fit(sparse_matrix.T)
 def prec_at_k(user_id: int, k: int = 10, debug=True):
     recs = model.recommend(user_id, sparse_matrix, N=k)
