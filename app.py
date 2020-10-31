@@ -2,12 +2,11 @@ from typing import Optional
 
 from fastapi import FastAPI
 
-from books import Library
 from rec_utils import load_pickle
-from recommender import RecommenderWrapper
 
 LIBRARY_PATH = 'data/library.pkl'
 RECOMMENDER_PATH = 'data/recommender.pkl'
+USER_HISTORY_PATH = 'data/user_history.pkl'
 
 
 def create_app():
