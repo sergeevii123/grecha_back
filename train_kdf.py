@@ -208,6 +208,8 @@ if __name__ == '__main__':
         services_df.id_clustered.isin(leservices.inverse_transform(train_pairs[item_column]))].reset_index(drop=True)
     services_df_for_save = services_df_for_save.drop_duplicates('id_clustered').reset_index(drop=True)
     services_df_for_save['id_enc_cluster'] = leservices.transform(services_df_for_save.id_clustered)
+    most_popular_items = Counter(train_df['id_clustered'])
+    services_df_for_save['popularity'] = services_df_for_save.id_enc_cluster.apply(most_popular_items.get)
     services_df.to_csv('services.csv', index=False)
 
     print('finished')
