@@ -6,6 +6,6 @@ from rec_utils import dump_pickle
 
 if __name__ == '__main__':
     services = pd.read_csv('data/services.csv')
-    kdfs = create_kdfs_info_dict(services)
-    lib = Reestr(kdfs)
+    kdfs, popular = create_kdfs_info_dict(services)
+    lib = Reestr(kdfs, popular)
     dump_pickle(lib, LIBRARY_KDF_PATH)
