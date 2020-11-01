@@ -166,6 +166,7 @@ def create_app():
 
     @app.post("/build_kdf")
     def build_kdf(req: BuildKdfRec):
+        print(req)
         if len(req.kdfs) > 0:
             recs = app.state.recommeder_kdf.get_pred_for_items(req.kdfs)
             kdfs = [
