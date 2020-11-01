@@ -30,4 +30,5 @@ pyhton3 prepare_reestr.py
 # Запуск приложения
 ``python3 server.py``
 
-
+# ios приложение делалось в отдельном репозитории
+линк к нему в папке front
