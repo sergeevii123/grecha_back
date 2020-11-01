@@ -6,6 +6,7 @@ from implicit.nearest_neighbours import ItemItemRecommender
 from scipy.sparse import csr_matrix
 from sklearn.preprocessing import LabelEncoder
 from implicit.als import AlternatingLeastSquares
+from implicit.nearest_neighbours import CosineRecommender
 
 from books import Book
 from user_history import UserHistory
@@ -125,6 +126,31 @@ class RecommenderWrapper:
         encoded_user_id = self.encoded_user_id(user_id)
         item_ids = self.model.history(encoded_user_id, num_items)
         return self.item_encoder.inverse_transform(item_ids)
+
+
+class KDFRecommender(BaseRecommender):
+
+    def __init__(self, model: CosineRecommender, user_items: csr_matrix):
+        self.model = model
+        self.user_items = user_items
+
+    def recommend(self, user_id: List[int], num_recs: Optional[int] = 10) -> list:
+        return self.model.recommend(user_id, self.user_items, N=num_recs)
+
+    def history(self, user_id: List[int], num_items: int = 10) -> list:
+        return self.user_items[user_id].nonzero()[1][-num_items:]
+
+    def get_pred_for_items(self, items, topk=10):
+        out = []
+        items_set = set()
+        for item in items:
+            items_set.add(item)
+
+            for sim_i in self.model.similar_items(item, (topk // len(items)) + 1):
+                if sim_i[0] not in items_set:
+                    out.append(sim_i[0])
+
+        return out[:topk]
 
 
 def filter_genres(history: List[Book], recs: List[Book]):
