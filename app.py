@@ -1,11 +1,12 @@
 from typing import Optional, List
 
 from fastapi import FastAPI
+from pydantic.main import BaseModel
 
 from books import Library
 from kdfs import BuildKdfRec
 from rec_utils import load_pickle
-from recommender import filter_genres
+from recommender import filter_genres, ALSSimilarityRecommender
 
 LIBRARY_PATH = 'data/library.pkl'
 RECOMMENDER_PATH = 'data/recommender.pkl'
@@ -14,10 +15,18 @@ RECOMMENDER_KDF_PATH = 'data/w_kdf_rec.pkl'
 AUTHOR_RECOMMENDER_PATH = 'data/author_recommender.pkl'
 USER_HISTORY_PATH = 'data/user_history.pkl'
 USER_GT_PATH = 'data/user_gt.pkl'
+POPULAR_BOOKS_SAMPLER_PATH = 'data/book_sampler.pkl'
+
+
+class BooksRequest(BaseModel):
+
+    book_ids: List[int]
+    num_recs: Optional[int] = 10
 
 
 def create_app():
     app = FastAPI()
+    app.state.book_sampler = load_pickle(POPULAR_BOOKS_SAMPLER_PATH)
     app.state.library = load_pickle(LIBRARY_PATH)
     app.state.reestr = load_pickle(LIBRARY_KDF_PATH)
     app.state.recommeder = load_pickle(RECOMMENDER_PATH)
@@ -25,6 +34,10 @@ def create_app():
     app.state.user_gt = load_pickle(USER_GT_PATH)
     app.state.user_history = load_pickle(USER_HISTORY_PATH)
     app.state.author_recommender.user_history = app.state.user_history
+    app.state.similarity_recommender = ALSSimilarityRecommender(
+        app.state.recommeder.model.als_model,
+        app.state.recommeder.item_encoder,
+    )
 
     app.state.recommeder_kdf = load_pickle(RECOMMENDER_KDF_PATH)
 
@@ -36,6 +49,17 @@ def create_app():
     def get_book(book_id: int):
         return app.state.library.get_book(book_id)
 
+    @app.get("/random_books")
+    def get_random_books(num_books: Optional[int] = 30):
+        book_ids = app.state.book_sampler.sample_books(num_books)
+        books = [
+            app.state.library.get_book(book_id)
+            for book_id in book_ids
+        ]
+        return {
+            'books': books
+        }
+
     @app.get("/items/{kdf_id}")
     def get_kdf(kdf_id: int):
         return app.state.reestr.get_kdf(kdf_id)
@@ -43,10 +67,11 @@ def create_app():
     @app.get("/get_all_kdf")
     def get_kdf():
         return [
-                    {
-                        'name':value.name, 'id':value.rec_id
-                    }
-            for key,value in app.state.reestr.kdfs.items()
+            {
+                'name': value.name,
+                'id': value.rec_id
+            }
+            for key, value in app.state.reestr.kdfs.items()
         ]
 
     @app.get("/recs/{reader_id}")
@@ -101,6 +126,25 @@ def create_app():
             'history': history,
             'books': filter_genres(history, books)[:rec_items],
             'gt': gt,
+        }
+
+    @app.post("/recs")
+    def similarity_recs(
+            request: BooksRequest,
+    ):
+        recs = app.state.similarity_recommender.recommend(request.book_ids, request.num_recs + 10)
+        books = [
+            app.state.library.get_book(book_id)
+            for book_id in recs
+        ]
+        history = [
+            app.state.library.get_book(book_id)
+            for book_id in request.book_ids
+        ]
+
+        return {
+            'history': history,
+            'books': filter_genres(history, books)[:request.num_recs],
         }
 
     @app.get("/recs_kdf/{user_id}")
