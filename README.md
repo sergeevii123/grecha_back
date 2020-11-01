@@ -19,10 +19,12 @@ python3 book_sampler.py
 ```
 
 # Подготовка моделей для КДФ
+В папке data должны лежать все файлы [отсюда](https://drive.google.com/drive/folders/13Egz5APU8eJZ8N8md0Pm2xb7E3d7cJxK).
 ```
+python3 train_kdf.py
 python3 prepare_kdf_rec.py
 pyhton3 prepare_reestr.py
-python3 train_kdf.py
+
 ```
 
 # Запуск приложения
