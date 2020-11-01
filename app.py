@@ -166,11 +166,19 @@ def create_app():
 
     @app.post("/build_kdf")
     def build_kdf(req: BuildKdfRec):
-        recs = app.state.recommeder_kdf.get_pred_for_items(req.kdfs)
-        kdfs = [
-            app.state.reestr.get_kdf(kdf_id)
-            for kdf_id in recs
-        ]
+        if len(req.kdfs) > 0:
+            recs = app.state.recommeder_kdf.get_pred_for_items(req.kdfs)
+            kdfs = [
+                app.state.reestr.get_kdf(kdf_id)
+                for kdf_id in recs
+            ]
+
+        else:
+            recs = app.state.reestr.get_popular(10)
+            kdfs = [
+                pair[1]
+                for pair in recs
+            ]
         return {
             'kdfs': kdfs
         }
