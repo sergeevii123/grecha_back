@@ -1,19 +1,16 @@
 import os
 
-import implicit
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import LabelEncoder
 from scipy.sparse import csr_matrix
 
-from app import RECOMMENDER_PATH, USER_HISTORY_PATH
+from app import USER_HISTORY_PATH, USER_GT_PATH
 from rec_utils import dump_pickle
-from recommender import RecommenderWrapper, ImplicitRecommender
 from train_utils import prepare_issues_dataset
 from user_history import UserHistory
 
 if __name__ == '__main__':
-    os.environ['OPENBLAS_NUM_THREADS'] = '1'
 
     issues_prepared = prepare_issues_dataset()
 
@@ -39,15 +36,8 @@ if __name__ == '__main__':
         shape=(n_readers, n_items)
     )
 
-    model = implicit.als.AlternatingLeastSquares(factors=100, iterations=5)
-    model.fit(train_matrix.T)
-
-    wrapper = RecommenderWrapper(
-        user_encoder=user_lc,
-        item_encoder=item_lc,
-        model=ImplicitRecommender(model, train_matrix)
-    )
     user_history = UserHistory(train_matrix)
+    user_gt = UserHistory(test_matrix)
 
     dump_pickle(user_history, USER_HISTORY_PATH)
-    dump_pickle(wrapper, RECOMMENDER_PATH)
+    dump_pickle(user_gt, USER_GT_PATH)
