@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from collections import defaultdict
 from operator import itemgetter
 from typing import List, Optional
 
@@ -15,10 +16,17 @@ from user_history import UserHistory
 class BaseRecommender(ABC):
 
     @abstractmethod
-    def recommend(self, user_id: List[int], num_recs: Optional[int] = 10) -> list:
+    def recommend(self, user_id: int, num_recs: Optional[int] = 10) -> list:
         pass
 
-    def history(self, user_id: List[int], num_items: Optional[int] = 10) -> list:
+    def history(self, user_id: int, num_items: Optional[int] = 10) -> list:
+        pass
+
+
+class BaseItemRecommender(ABC):
+
+    @abstractmethod
+    def recommend(self, history: List[int], num_recs: Optional[int] = 10) -> list:
         pass
 
 
@@ -126,6 +134,27 @@ class RecommenderWrapper:
         encoded_user_id = self.encoded_user_id(user_id)
         item_ids = self.model.history(encoded_user_id, num_items)
         return self.item_encoder.inverse_transform(item_ids)
+
+
+class ALSSimilarityRecommender(BaseItemRecommender):
+
+    def __init__(self, als_model: AlternatingLeastSquares, item_encoder: LabelEncoder):
+        self.als_model = als_model
+        self.item_encoder = item_encoder
+
+    def recommend(self, history: List[int], num_recs: Optional[int] = 10) -> list:
+        all_items = defaultdict(float)
+        history_encoded = self.item_encoder.transform(history)
+        history_set = set(history_encoded)
+        for book_id in history_encoded:
+            similar_items = self.als_model.similar_items(book_id)
+            for item, score in similar_items:
+                if item not in history_set:
+                    all_items[item] += score
+
+        recs = list(all_items.items())
+        recs_sorted = sorted(recs, key=itemgetter(1), reverse=True)[:num_recs]
+        return self.item_encoder.inverse_transform([rec[0] for rec in recs_sorted])
 
 
 class KDFRecommender(BaseRecommender):
